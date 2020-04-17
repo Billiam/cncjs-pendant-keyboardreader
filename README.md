@@ -1,6 +1,8 @@
 # cncjs-pendant-keyboardreader
 A CNCjs pendant for remote jogging using a keyboard. Implements GRBL's "smooth jogging" ($J commands).
 
+I'm currently using this with a Logitech K400+ and GRBL
+
 ## Pre-requisite
 
 `Node.JS` and `npm` must have been installed.
