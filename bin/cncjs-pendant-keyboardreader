@@ -29,7 +29,7 @@ const SMOOTHJOG_JOGSPEED = 5000 // mm per min
 
 let smoothJogging = false;
 let smoothJoggingTimer = null;
-let jogging = true;
+let jogging = false;
 
 program
     .version(pkg.version)
@@ -174,7 +174,6 @@ const jog_singlestep = function(axis, direction, jogDistance) {
         socket_write('G90');
     }
 };
-
 
 const socket_write = function(action) {
   socket.emit('write', options.port, `${action};\n`);
