@@ -169,15 +169,19 @@ const jog_singlestep = function(axis, direction, jogDistance) {
         jogging = true;
         console.log("JOG STEP " + axis + direction + jogDistance);
 
-        socket.emit('write', options.port, "G91;\n");
-        socket.emit('write', options.port, "G0 "+ axis + direction + jogDistance +";\n");
-        socket.emit('write', options.port, "G90;\n");
+        socket_write('G91');
+        socket_write(`G0${axis}${direction}${jogDistance}`);
+        socket_write('G90');
     }
 };
 
-const smoothjog = function(axis, direction, jogDistance, jogSpeed) {
-    socket.emit('write', options.port, "$J=G91 G21 "+ axis + direction + jogDistance + " F"+ jogSpeed + "\n")
 
+const socket_write = function(action) {
+  socket.emit('write', options.port, `${action};\n`);
+}
+
+const smoothjog = function(axis, direction, jogDistance, jogSpeed) {
+    socket_write(`"$J=G91 G21 ${axis}${direction}${jogDistance} F${jogSpeed}`)
     // plan to resend a smooth jog command after a small delay to keep things going,
     // unless user asked to stop the smooth jog movement
     if(smoothJogging) {
@@ -196,7 +200,7 @@ const StartSmoothJog = function(axis, direction, jogStep, jogSpeed) {
 const StopSmoothJog = function() {
     smoothJogging = false;
     clearTimeout(smoothJoggingTimer);
-    socket.emit('write', options.port, "\x85;\n");
+    socket_write("\x85");
     console.log("STOP JOG");
 }
 
@@ -261,6 +265,10 @@ const processEvent = function(event) {
             }
             jog_singlestep(axis, moveDirection, jogSpeed);
         }
+    } else if (event.l_control || event.r_control) {
+      if (event.key == 11) { // control + h -> home
+        socket_write('$H');
+      }
     }
 
     // Useful for debug/figuring out keypress codes
