@@ -1,15 +1,10 @@
 #!/usr/bin/env node
 
-const fs = require("fs");
-const path = require("path");
 const program = require("commander");
 const serialport = require("serialport");
-const inquirer = require("inquirer");
 const pkg = require("../package.json");
 const serverMain = require("../index");
 const HID = require('node-hid');
-
-var options = {};
 
 const axes = {
     X: 'X',
@@ -32,9 +27,9 @@ const SMOOTHJOG_JOGSTEP = 30 // mm
 const SMOOTHJOG_COMMANDS_INTERVAL = 200 // period in ms at which the $J jogging commands are sent to the machine
 const SMOOTHJOG_JOGSPEED = 5000 // mm per min
 
-var smoothJogging = false;
-var smoothJoggingTimer = null;
-var jogging = true;
+let smoothJogging = false;
+let smoothJoggingTimer = null;
+let jogging = true;
 
 program
     .version(pkg.version)
@@ -66,7 +61,7 @@ program
 
 program.parse(process.argv);
 
-var options = {
+const options = {
     secret: program.secret,
     port: program.port,
     baudrate: program.baudrate,
@@ -79,26 +74,26 @@ var options = {
 
 if (program.list) {
     serialport.list(function(err, ports) {
-	if (err) {
-	    console.error(err);
-	    process.exit(1);
-	}
-	ports.forEach(function(port) {
-	    console.log(port.comName);
-	});
+        if (err) {
+            console.error(err);
+            process.exit(1);
+        }
+        ports.forEach(function(port) {
+            console.log(port.comName);
+        });
     });
     return;
 }
 
 if (program.listDevices) {
-    var devices = HID.devices();
+    const devices = HID.devices();
     devices.forEach(function(device) {
-	console.log(device);
+        console.log(device);
     });
     return;
 }
 
-var store = {
+const store = {
     controller: {
         state: {},
         settings: {}
@@ -114,10 +109,10 @@ const createServer = function(options) {
         // Grbl
         socket.on("Grbl:state", function(state) {
             console.log('state', state);
-	    store.controller.state = state;
+            store.controller.state = state;
         });
         socket.on("Grbl:settings", function(settings) {
-	    console.log('settings', settings);
+            console.log('settings', settings);
             store.controller.settings = settings;
         });
 
@@ -146,10 +141,10 @@ const createServer = function(options) {
     const device = new HID.HID(...program.device);
 
     device.on("data", function(data) {
-        var recv = data.toJSON().data;
+        let recv = data.toJSON().data;
         recv.shift();
-        var bits = recv.shift();
-        var event = {
+        const bits = recv.shift();
+        const event = {
             l_control: (bits & 1) !== 0 && bits <= 128,
             l_shift: (bits & 2) !== 0 && bits <= 128,
             l_alt: (bits & 4) !== 0 && bits <= 128,
@@ -171,12 +166,12 @@ const createServer = function(options) {
 
 const jog_singlestep = function(axis, direction, jogDistance) {
     if ( ! jogging) {
-	jogging = true;
-	console.log("JOG STEP " + axis + direction + jogDistance);
+        jogging = true;
+        console.log("JOG STEP " + axis + direction + jogDistance);
 
-	socket.emit('write', options.port, "G91;\n");
-	socket.emit('write', options.port, "G0 "+ axis + direction + jogDistance +";\n");
-	socket.emit('write', options.port, "G90;\n");
+        socket.emit('write', options.port, "G91;\n");
+        socket.emit('write', options.port, "G0 "+ axis + direction + jogDistance +";\n");
+        socket.emit('write', options.port, "G90;\n");
     }
 };
 
@@ -186,15 +181,15 @@ const smoothjog = function(axis, direction, jogDistance, jogSpeed) {
     // plan to resend a smooth jog command after a small delay to keep things going,
     // unless user asked to stop the smooth jog movement
     if(smoothJogging) {
-	smoothJoggingTimer = setTimeout(smoothjog, SMOOTHJOG_COMMANDS_INTERVAL, axis, direction, jogDistance, jogSpeed);
+        smoothJoggingTimer = setTimeout(smoothjog, SMOOTHJOG_COMMANDS_INTERVAL, axis, direction, jogDistance, jogSpeed);
     }
 };
 
 const StartSmoothJog = function(axis, direction, jogStep, jogSpeed) {
     if ( ! smoothJogging) {
-	smoothJogging = true;
-	smoothjog(axis, direction, jogStep, jogSpeed);
-	console.log("SMOOTH JOG " +axis + direction + jogStep + " F"+ jogSpeed);
+        smoothJogging = true;
+        smoothjog(axis, direction, jogStep, jogSpeed);
+        console.log("SMOOTH JOG " +axis + direction + jogStep + " F"+ jogSpeed);
     }
 }
 
@@ -206,56 +201,57 @@ const StopSmoothJog = function() {
 }
 
 const processEvent = function(event) {
-    var axis;
-    var moveDirection;
+    let axis;
+    let moveDirection;
 
     if ( smoothJogging && !(event.l_shift || event.r_shift)) {
         StopSmoothJog();
     }
 
     switch (event.key) {
-	case 80: // shift + left arrow = jog X- large step/speed
-	    axis = axes.X;
-	    moveDirection = direction.negative;
-	    break;
-	case 79: // shift + right arrow = jog X+ large step/speed
-	    axis = axes.X;
-	    moveDirection = direction.positive;
-	    break;
-	case 82: // shift + up arrow = jog Y+ large step/speed
-	    axis = axes.Y;
-	    moveDirection = direction.positive;
-	    break;
-	case 81:  // shift + down arrow = jog Y- large step/speed
-	    axis = axes.Y;
-	    moveDirection = direction.negative;
-	    break;
-	case 12: // shift + I = jog Z+ large step/speed
-	    axis = axes.Z;
-	    moveDirection = direction.positive;
-	    break;
-	case 14: // shift + K = jog Z- large step/speed
-	    axis = axes.Z;
-	    moveDirection = direction.negative;
-	    break;
-	case 0:
-	    jogging = false;
+        case 80: // shift + left arrow = jog X- large step/speed
+            axis = axes.X;
+            moveDirection = direction.negative;
+            break;
+        case 79: // shift + right arrow = jog X+ large step/speed
+            axis = axes.X;
+            moveDirection = direction.positive;
+            break;
+        case 82: // shift + up arrow = jog Y+ large step/speed
+            axis = axes.Y;
+            moveDirection = direction.positive;
+            break;
+        case 81:  // shift + down arrow = jog Y- large step/speed
+            axis = axes.Y;
+            moveDirection = direction.negative;
+            break;
+        case 12: // shift + I = jog Z+ large step/speed
+            axis = axes.Z;
+            moveDirection = direction.positive;
+            break;
+        case 14: // shift + K = jog Z- large step/speed
+            axis = axes.Z;
+            moveDirection = direction.negative;
+            break;
+        case 0:
+            jogging = false;
+            break;
     }
 
 
     if (axis != null && moveDirection != null) {
         if (event.l_shift || event.r_shift) {
-	    var jogSpeed = SMOOTHJOG_JOGSPEED;
-	    var jogStep = SMOOTHJOG_JOGSTEP;
+            let jogSpeed = SMOOTHJOG_JOGSPEED;
+            let jogStep = SMOOTHJOG_JOGSTEP;
 
-	    if (axis === axes.Z) {
-	        jogSpeed = jogSpeed/2;
-		jogStep = jogStep/2;
-	    }
+            if (axis === axes.Z) {
+                jogSpeed = jogSpeed/2;
+                jogStep = jogStep/2;
+            }
 
-	    StartSmoothJog(axis, moveDirection, jogStep, jogSpeed);
+            StartSmoothJog(axis, moveDirection, jogStep, jogSpeed);
         } else {
-            var jogSpeed;
+            let jogSpeed;
             if (event.l_control || event.r_control) {
                 jogSpeed = SINGLESTEP_LARGE_JOGDISTANCE;
             } else if (event.l_alt || event.r_alt) {
@@ -264,7 +260,7 @@ const processEvent = function(event) {
                 jogSpeed = SINGLESTEP_SMALL_JOGDISTANCE;
             }
             jog_singlestep(axis, moveDirection, jogSpeed);
-	}
+        }
     }
 
     // Useful for debug/figuring out keypress codes
