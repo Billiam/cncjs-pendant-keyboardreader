@@ -306,7 +306,7 @@ const createServer = function(options) {
             socket.emit('command', options.port, 'macro:run', macroId);
         }
 
-        const unpause() {
+        const unpause = function() {
             socket.emit('command', options.port, 'feeder:start');
         }
     });
