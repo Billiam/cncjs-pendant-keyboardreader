@@ -148,7 +148,7 @@ const createServer = function(options) {
         const macros = {}
         Object.keys(macroNames).forEach(function(id) {
             let macroName = macroNames[id];
-            macros[id] =  config.macros.find(function(macro) { return macro.name == macroName });
+            macros[id] =  config.macros.find(function(macro) { return macro.name == macroName }).id;
         });
         console.log(macros);
 
