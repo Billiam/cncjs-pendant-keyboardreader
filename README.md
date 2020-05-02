@@ -51,14 +51,26 @@ If execution is successful, you should see something like this:
 
 >Connected to port `<port>` (Baud rate: 115200)
 
+
+## Jogging key map
 At this point, the pendant will react to the following keys:
 
-* pressing the left,right,up,down,pageUp,pageDown keys will jog the machine by the FINE step size, along X/Y/Z
+* pressing the left,right,up,down,i,k keys will jog the machine by the FINE step size, along X/Y/Z
 * holding the **Alt** key while pressing these jog keys will jog by the MEDIUM step size
 * holding the **Ctrl** key while pressing these jog keys will jog by the LARGE step size
 
 The distances for FINE, MEDIUM and LARGE can be modified in the source code, they are 0.1mm, 1mm, and 10mm by default.
 
-* /!\ holding the **Shift** key while pressing a jog key will trig a **CONTINUOUS** smooth jog along the selected axis (no need to hold the key). Releasing the shift key will **STOP** the movement.
+* /!\ holding the **Shift** key while pressing a jog key will trig a **CONTINUOUS** smooth jog along the selected axis (no need to hold the key).
+Releasing the shift key will **STOP** the movement.
+
+## Macros and commands:
+
+* `Ctrl` + `h` will home the machine
+* `Ctrl` + `p` will execute the macro named `XYZ Probe` if available.
+* `Ctrl` + `z` will execute the macro named `Z Probe` if available.
+* `Ctrl` + `1` will execute the macro named `Initial Tool` if available.
+* `Ctrl` + `2` will execute the macro named `New Tool` if available.
+* `Ctrl` + `Shift` + `Return` will dismiss pause notifications and continue. Careful!
 
 

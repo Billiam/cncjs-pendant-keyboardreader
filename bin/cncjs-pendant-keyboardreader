@@ -19,6 +19,13 @@ const direction = {
     UNKNOWN: "unknown"
 }
 
+const macroNames = {
+    Z_PROBE: 'Z Probe',
+    XYZ_PROBE: 'XYZ Probe',
+    INITIAL_TOOL: 'Initial Tool',
+    NEW_TOOL: 'New Tool'
+}
+
 const SINGLESTEP_LARGE_JOGDISTANCE = 10 // large jog step in mm
 const SINGLESTEP_MEDIUM_JOGDISTANCE = 1 // medium jog step in mm
 const SINGLESTEP_SMALL_JOGDISTANCE = 0.1 // small jog step in mm
@@ -26,10 +33,6 @@ const SINGLESTEP_SMALL_JOGDISTANCE = 0.1 // small jog step in mm
 const SMOOTHJOG_JOGSTEP = 30 // mm
 const SMOOTHJOG_COMMANDS_INTERVAL = 200 // period in ms at which the $J jogging commands are sent to the machine
 const SMOOTHJOG_JOGSPEED = 5000 // mm per min
-
-let smoothJogging = false;
-let smoothJoggingTimer = null;
-let jogging = false;
 
 program
     .version(pkg.version)
@@ -104,8 +107,7 @@ const store = {
 };
 
 const createServer = function(options) {
-
-    serverMain(options, function(err, socket) {
+    serverMain(options, function(err, socket, config) {
         // Grbl
         socket.on("Grbl:state", function(state) {
             console.log('state', state);
@@ -136,143 +138,183 @@ const createServer = function(options) {
         socket.on("sender:status", function(data) {
             store.sender.status = data;
         });
-    });
 
-    const device = new HID.HID(...program.device);
+        const device = new HID.HID(...program.device);
 
-    device.on("data", function(data) {
-        let recv = data.toJSON().data;
-        recv.shift();
-        const bits = recv.shift();
-        const event = {
-            l_control: (bits & 1) !== 0 && bits <= 128,
-            l_shift: (bits & 2) !== 0 && bits <= 128,
-            l_alt: (bits & 4) !== 0 && bits <= 128,
-            l_meta: (bits & 8) !== 0 && bits <= 128,
-            r_control: (bits & 16) !== 0 && bits <= 128,
-            r_shift: (bits & 32) !== 0 && bits <= 128,
-            r_alt: (bits & 64) !== 0 && bits <= 128,
-            r_meta: (bits & 128) !== 0 && bits <= 128
+        let smoothJogging = false;
+        let smoothJoggingTimer = null;
+        let jogging = false;
+
+        const macros = {}
+        Object.keys(macroNames).forEach(function(id) {
+            let macroName = macroNames[id];
+            let macro = config.macros.find(function(macro) { return macro.name == macroName });
+            if (macro) {
+                macros[id] =  macro.id;
+            }
+        });
+        console.log(macros);
+
+        device.on("data", function(data) {
+            let recv = data.toJSON().data;
+            recv.shift();
+            const bits = recv.shift();
+            const event = {
+                l_control: (bits & 1) !== 0 && bits <= 128,
+                l_shift: (bits & 2) !== 0 && bits <= 128,
+                l_alt: (bits & 4) !== 0 && bits <= 128,
+                l_meta: (bits & 8) !== 0 && bits <= 128,
+                r_control: (bits & 16) !== 0 && bits <= 128,
+                r_shift: (bits & 32) !== 0 && bits <= 128,
+                r_alt: (bits & 64) !== 0 && bits <= 128,
+                r_meta: (bits & 128) !== 0 && bits <= 128
+            };
+            //console.log(bits);
+            event.key = recv.shift();
+            if (event.key == 0 && bits > 128) {
+                event.key = bits;
+            }
+            processEvent(event);
+        });
+
+        const processEvent = function(event) {
+            let axis;
+            let moveDirection;
+
+            if ( smoothJogging && !(event.l_shift || event.r_shift)) {
+                stopSmoothJog();
+            }
+
+            switch (event.key) {
+                case 80: // shift + left arrow = jog X- large step/speed
+                    axis = axes.X;
+                    moveDirection = direction.negative;
+                    break;
+                case 79: // shift + right arrow = jog X+ large step/speed
+                    axis = axes.X;
+                    moveDirection = direction.positive;
+                    break;
+                case 82: // shift + up arrow = jog Y+ large step/speed
+                    axis = axes.Y;
+                    moveDirection = direction.positive;
+                    break;
+                case 81:  // shift + down arrow = jog Y- large step/speed
+                    axis = axes.Y;
+                    moveDirection = direction.negative;
+                    break;
+                case 12: // shift + I = jog Z+ large step/speed
+                    axis = axes.Z;
+                    moveDirection = direction.positive;
+                    break;
+                case 14: // shift + K = jog Z- large step/speed
+                    axis = axes.Z;
+                    moveDirection = direction.negative;
+                    break;
+                case 0:
+                    jogging = false;
+                    break;
+            }
+
+            if (axis != null && moveDirection != null) {
+                if (event.l_shift || event.r_shift) {
+                    let jogSpeed = SMOOTHJOG_JOGSPEED;
+                    let jogStep = SMOOTHJOG_JOGSTEP;
+
+                    if (axis === axes.Z) {
+                        jogSpeed = jogSpeed/2;
+                        jogStep = jogStep/2;
+                    }
+
+                    StartSmoothJog(axis, moveDirection, jogStep, jogSpeed);
+                } else {
+                    let jogSpeed;
+                    if (event.l_control || event.r_control) {
+                        jogSpeed = SINGLESTEP_LARGE_JOGDISTANCE;
+                    } else if (event.l_alt || event.r_alt) {
+                        jogSpeed = SINGLESTEP_MEDIUM_JOGDISTANCE;
+                    } else {
+                        jogSpeed = SINGLESTEP_SMALL_JOGDISTANCE;
+                    }
+                    jogSinglestep(axis, moveDirection, jogSpeed);
+                }
+            } else if (event.l_control || event.r_control) {
+                if ((event.l_shift || event.r_shift) && event.key == 40) {
+                    unpause() // Ctrl + shift + enter: unpause
+                } else {
+                    switch (event.key) {
+                        case 11: // ctrl + h: Home
+                            socket_write('$H');
+                            break;
+                        case 19: // ctrl + p: Probe
+                            run_macro(macros.XYZ_PROBE);
+                            break;
+                        case 29: // ctrl + z: Z-probe only
+                            run_macro(macros.Z_PROBE);
+                            break;
+                        case 30: // ctrl + 1: Initial Tool
+                            run_macro(macros.INITIAL_TOOL);
+                            break;
+                        case 31: // ctrl + 2: New Tool
+                            run_macro(macros.NEW_TOOL);
+                            break;
+                    }
+                }
+            }
+
+            // Useful for debug/figuring out keypress codes
+            //console.log('key', key);
+            //console.log('data', data);
         };
-        //console.log(bits);
-        event.key = recv.shift();
-        if (event.key == 0 && bits > 128) {
-            event.key = bits;
+
+
+        const smoothJog = function(axis, direction, jogDistance, jogSpeed) {
+            socket_write(`$J=G91 G21 ${axis}${direction}${jogDistance} F${jogSpeed}`)
+            // plan to resend a smooth jog command after a small delay to keep things going,
+            // unless user asked to stop the smooth jog movement
+            if(smoothJogging) {
+                smoothJoggingTimer = setTimeout(smoothjog, SMOOTHJOG_COMMANDS_INTERVAL, axis, direction, jogDistance, jogSpeed);
+            }
+        };
+
+        const StartSmoothJog = function(axis, direction, jogStep, jogSpeed) {
+            if ( ! smoothJogging) {
+                smoothJogging = true;
+                smoothJog(axis, direction, jogStep, jogSpeed);
+                console.log("SMOOTH JOG " +axis + direction + jogStep + " F"+ jogSpeed);
+            }
         }
-        processEvent(event);
+        const stopSmoothJog = function() {
+            smoothJogging = false;
+            clearTimeout(smoothJoggingTimer);
+            socket_write("\x85");
+            console.log("STOP JOG");
+        }
+
+        const jogSinglestep = function(axis, direction, jogDistance) {
+            if ( ! jogging) {
+                jogging = true;
+                console.log("JOG STEP " + axis + direction + jogDistance);
+
+                socket_write('G91');
+                socket_write(`G0${axis}${direction}${jogDistance}`);
+                socket_write('G90');
+            }
+        };
+
+        const socket_write = function(action) {
+            socket.emit('write', options.port, `${action};\n`);
+        }
+
+        const run_macro = function(macroId) {
+            if (macroId) {
+                socket.emit('command', options.port, 'macro:run', macroId);
+            }
+        }
+
+        const unpause = function() {
+            socket.emit('command', options.port, 'feeder:start');
+        }
     });
-
-};
-
-const jog_singlestep = function(axis, direction, jogDistance) {
-    if ( ! jogging) {
-        jogging = true;
-        console.log("JOG STEP " + axis + direction + jogDistance);
-
-        socket_write('G91');
-        socket_write(`G0${axis}${direction}${jogDistance}`);
-        socket_write('G90');
-    }
-};
-
-const socket_write = function(action) {
-  socket.emit('write', options.port, `${action};\n`);
-}
-
-const smoothjog = function(axis, direction, jogDistance, jogSpeed) {
-    socket_write(`$J=G91 G21 ${axis}${direction}${jogDistance} F${jogSpeed}`)
-    // plan to resend a smooth jog command after a small delay to keep things going,
-    // unless user asked to stop the smooth jog movement
-    if(smoothJogging) {
-        smoothJoggingTimer = setTimeout(smoothjog, SMOOTHJOG_COMMANDS_INTERVAL, axis, direction, jogDistance, jogSpeed);
-    }
-};
-
-const StartSmoothJog = function(axis, direction, jogStep, jogSpeed) {
-    if ( ! smoothJogging) {
-        smoothJogging = true;
-        smoothjog(axis, direction, jogStep, jogSpeed);
-        console.log("SMOOTH JOG " +axis + direction + jogStep + " F"+ jogSpeed);
-    }
-}
-
-const StopSmoothJog = function() {
-    smoothJogging = false;
-    clearTimeout(smoothJoggingTimer);
-    socket_write("\x85");
-    console.log("STOP JOG");
-}
-
-const processEvent = function(event) {
-    let axis;
-    let moveDirection;
-
-    if ( smoothJogging && !(event.l_shift || event.r_shift)) {
-        StopSmoothJog();
-    }
-
-    switch (event.key) {
-        case 80: // shift + left arrow = jog X- large step/speed
-            axis = axes.X;
-            moveDirection = direction.negative;
-            break;
-        case 79: // shift + right arrow = jog X+ large step/speed
-            axis = axes.X;
-            moveDirection = direction.positive;
-            break;
-        case 82: // shift + up arrow = jog Y+ large step/speed
-            axis = axes.Y;
-            moveDirection = direction.positive;
-            break;
-        case 81:  // shift + down arrow = jog Y- large step/speed
-            axis = axes.Y;
-            moveDirection = direction.negative;
-            break;
-        case 12: // shift + I = jog Z+ large step/speed
-            axis = axes.Z;
-            moveDirection = direction.positive;
-            break;
-        case 14: // shift + K = jog Z- large step/speed
-            axis = axes.Z;
-            moveDirection = direction.negative;
-            break;
-        case 0:
-            jogging = false;
-            break;
-    }
-
-
-    if (axis != null && moveDirection != null) {
-        if (event.l_shift || event.r_shift) {
-            let jogSpeed = SMOOTHJOG_JOGSPEED;
-            let jogStep = SMOOTHJOG_JOGSTEP;
-
-            if (axis === axes.Z) {
-                jogSpeed = jogSpeed/2;
-                jogStep = jogStep/2;
-            }
-
-            StartSmoothJog(axis, moveDirection, jogStep, jogSpeed);
-        } else {
-            let jogSpeed;
-            if (event.l_control || event.r_control) {
-                jogSpeed = SINGLESTEP_LARGE_JOGDISTANCE;
-            } else if (event.l_alt || event.r_alt) {
-                jogSpeed = SINGLESTEP_MEDIUM_JOGDISTANCE;
-            } else {
-                jogSpeed = SINGLESTEP_SMALL_JOGDISTANCE;
-            }
-            jog_singlestep(axis, moveDirection, jogSpeed);
-        }
-    } else if (event.l_control || event.r_control) {
-      if (event.key == 11) { // control + h -> home
-        socket_write('$H');
-      }
-    }
-
-    // Useful for debug/figuring out keypress codes
-    //console.log('key', key);
-    //console.log('data', data);
 };
 
 if (options.port && options.device) {
