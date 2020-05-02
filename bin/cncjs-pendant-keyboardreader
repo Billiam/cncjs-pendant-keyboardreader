@@ -148,7 +148,10 @@ const createServer = function(options) {
         const macros = {}
         Object.keys(macroNames).forEach(function(id) {
             let macroName = macroNames[id];
-            macros[id] =  config.macros.find(function(macro) { return macro.name == macroName }).id;
+            let macro = config.macros.find(function(macro) { return macro.name == macroName });
+            if (macro) {
+                macros[id] =  macro.id;
+            }
         });
         console.log(macros);
 
@@ -303,7 +306,9 @@ const createServer = function(options) {
         }
 
         const run_macro = function(macroId) {
-            socket.emit('command', options.port, 'macro:run', macroId);
+            if (macroId) {
+                socket.emit('command', options.port, 'macro:run', macroId);
+            }
         }
 
         const unpause = function() {
