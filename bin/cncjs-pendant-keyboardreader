@@ -236,7 +236,7 @@ const createServer = function(options) {
                 }
             } else if (event.l_control || event.r_control) {
                 if ((event.l_shift || event.r_shift) && event.key == 40) {
-                    unpause() # Ctrl + shift + enter: unpause
+                    unpause() // Ctrl + shift + enter: unpause
                 } else {
                     switch (event.key) {
                         case 11: // ctrl + h: Home
