@@ -272,7 +272,7 @@ const createServer = function(options) {
             // plan to resend a smooth jog command after a small delay to keep things going,
             // unless user asked to stop the smooth jog movement
             if(smoothJogging) {
-                smoothJoggingTimer = setTimeout(smoothjog, SMOOTHJOG_COMMANDS_INTERVAL, axis, direction, jogDistance, jogSpeed);
+                smoothJoggingTimer = setTimeout(smoothJog, SMOOTHJOG_COMMANDS_INTERVAL, axis, direction, jogDistance, jogSpeed);
             }
         };
 
