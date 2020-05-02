@@ -42,7 +42,7 @@ module.exports = function(options, callback) {
     const token = generateAccessToken({ id: '', name: 'cncjs-pendant' }, options.secret, options.accessTokenLifetime);
     const url = 'ws://' + options.socketAddress + ':' + options.socketPort + '?token=' + token;
 
-    socket = io.connect('ws://' + options.socketAddress + ':' + options.socketPort, {
+    const socket = io.connect('ws://' + options.socketAddress + ':' + options.socketPort, {
         'query': 'token=' + token
     });
 
@@ -73,7 +73,7 @@ module.exports = function(options, callback) {
 
         console.log('Connected to port "' + options.port + '" (Baud rate: ' + options.baudrate + ')');
 
-        callback(null, socket);
+        callback(null, socket, config);
     });
 
     socket.on('serialport:error', function(options) {
