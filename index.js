@@ -28,10 +28,12 @@ module.exports = function(options, callback) {
     options.controllerType = get(options, 'controllerType', 'Grbl');
     options.accessTokenLifetime = get(options, 'accessTokenLifetime', '30d');
 
+    let config = {};
+
     if (!options.secret) {
         const cncrc = path.resolve(getUserHome(), '.cncrc');
         try {
-            const config = JSON.parse(fs.readFileSync(cncrc, 'utf8'));
+            config = JSON.parse(fs.readFileSync(cncrc, 'utf8'));
             options.secret = config.secret;
         } catch (err) {
             console.error(err);
