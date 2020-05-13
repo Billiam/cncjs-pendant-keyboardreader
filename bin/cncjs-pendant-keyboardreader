@@ -139,11 +139,18 @@ const createServer = function(options) {
             store.sender.status = data;
         });
 
+        socket.on('serialport:read', function(data) {
+            if ( ! joggingAck && data.startsWith('ok')) {
+                joggingAck = true;
+            }
+        });
+
         const device = new HID.HID(...program.device);
 
         let smoothJogging = false;
         let smoothJoggingTimer = null;
         let jogging = false;
+        let joggingAck = true;
 
         const macros = {}
         Object.keys(macroNames).forEach(function(id) {
@@ -153,7 +160,6 @@ const createServer = function(options) {
                 macros[id] =  macro.id;
             }
         });
-        console.log(macros);
 
         device.on("data", function(data) {
             let recv = data.toJSON().data;
@@ -238,7 +244,7 @@ const createServer = function(options) {
                     jogSinglestep(axis, moveDirection, jogSpeed);
                 }
             } else if (event.l_control || event.r_control) {
-                if ((event.l_shift || event.r_shift) && event.key == 40) {
+                if ((event.l_shift || event.r_shift) && event.key === 40) {
                     unpause() // Ctrl + shift + enter: unpause
                 } else {
                     switch (event.key) {
@@ -268,12 +274,22 @@ const createServer = function(options) {
 
 
         const smoothJog = function(axis, direction, jogDistance, jogSpeed) {
-            socket_write(`$J=G91 G21 ${axis}${direction}${jogDistance} F${jogSpeed}`)
+            if (!smoothJogging) {
+                return
+            }
+            let jogDelayModifier = 1;
+
+            if (joggingAck) {
+                   socket_write(`$J=G91 G21 ${axis}${direction}${jogDistance} F${jogSpeed}`);
+                   joggingAck = false;
+            } else {
+                //check back in 50% time
+                jogDelayModifier = 0.5;
+            }
+
             // plan to resend a smooth jog command after a small delay to keep things going,
             // unless user asked to stop the smooth jog movement
-            if(smoothJogging) {
-                smoothJoggingTimer = setTimeout(smoothJog, SMOOTHJOG_COMMANDS_INTERVAL, axis, direction, jogDistance, jogSpeed);
-            }
+            smoothJoggingTimer = setTimeout(jogOnAck, SMOOTHJOG_COMMANDS_INTERVAL * jogDelayModifier, axis, direction, jogDistance, jogSpeed);
         };
 
         const StartSmoothJog = function(axis, direction, jogStep, jogSpeed) {
