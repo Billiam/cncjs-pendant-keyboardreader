@@ -72,5 +72,6 @@ Releasing the shift key will **STOP** the movement.
 * `Ctrl` + `1` will execute the macro named `Initial Tool` if available.
 * `Ctrl` + `2` will execute the macro named `New Tool` if available.
 * `Ctrl` + `Shift` + `Return` will dismiss pause notifications and continue. Careful!
+* `Ctrl` + `Shift + `r` will resume paused gcode. Careful again!
 
 

@@ -245,7 +245,9 @@ const createServer = function(options) {
                 }
             } else if (event.l_control || event.r_control) {
                 if ((event.l_shift || event.r_shift) && event.key === 40) {
-                    unpause() // Ctrl + shift + enter: unpause
+                    unpause(); // Ctrl + shift + enter: unpause
+                } else if((event.l_shift || event.r_shift) && event.key === 15) {
+                    resume(); // Ctrl + shift + r : Gcode Resume
                 } else {
                     switch (event.key) {
                         case 11: // ctrl + h: Home
@@ -329,6 +331,10 @@ const createServer = function(options) {
 
         const unpause = function() {
             socket.emit('command', options.port, 'feeder:start');
+        }
+
+        const resume = function() {
+            socket.emit('command', options.port, 'gcode:resume');
         }
     });
 };
