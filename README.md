@@ -61,8 +61,9 @@ At this point, the pendant will react to the following keys:
 
 The distances for FINE, MEDIUM and LARGE can be modified in the source code, they are 0.1mm, 1mm, and 10mm by default.
 
-* /!\ holding the **Shift** key while pressing a jog key will trig a **CONTINUOUS** smooth jog along the selected axis (no need to hold the key).
+* /!\ holding the **Shift** key while pressing a jog key will trigger a **CONTINUOUS** smooth jog along the selected axis (no need to hold the key).
 Releasing the shift key will **STOP** the movement.
+* /!\ holding the **Ctrl** and **Shift** keys while pressing a jog key will trigger a faster continuous smooth jog.
 
 ## Macros and commands:
 

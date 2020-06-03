@@ -222,14 +222,21 @@ const createServer = function(options) {
             }
 
             if (axis != null && moveDirection != null) {
+                let speedModifier;
                 if (event.l_shift || event.r_shift) {
-                    let jogSpeed = SMOOTHJOG_JOGSPEED;
-                    let jogStep = SMOOTHJOG_JOGSTEP;
+
+                    if (event.l_ctrl || event.r_ctrl) {
+                        speedModifier = 1;
+                    } else {
+                        speedModifier = 0.5;
+                    }
 
                     if (axis === axes.Z) {
-                        jogSpeed = jogSpeed/2;
-                        jogStep = jogStep/2;
+                        speedModifier *= 0.25;
                     }
+
+                    let jogSpeed = SMOOTHJOG_JOGSPEED * speedModifier;
+                    let jogStep = SMOOTHJOG_JOGSTEP * speedModifier;
 
                     StartSmoothJog(axis, moveDirection, jogStep, jogSpeed);
                 } else {
