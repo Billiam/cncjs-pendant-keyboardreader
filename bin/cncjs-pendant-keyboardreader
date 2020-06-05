@@ -225,7 +225,7 @@ const createServer = function(options) {
                 let speedModifier;
                 if (event.l_shift || event.r_shift) {
 
-                    if (event.l_ctrl || event.r_ctrl) {
+                    if (event.l_control || event.r_control) {
                         speedModifier = 1;
                     } else {
                         speedModifier = 0.5;
