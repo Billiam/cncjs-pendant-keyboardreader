@@ -44,7 +44,7 @@ module.exports = function(options, callback) {
     const token = generateAccessToken({ id: '', name: 'cncjs-pendant' }, options.secret, options.accessTokenLifetime);
     const url = 'ws://' + options.socketAddress + ':' + options.socketPort + '?token=' + token;
 
-    const socket = io.connect('ws://' + options.socketAddress + ':' + options.socketPort, {
+    let socket = io.connect('ws://' + options.socketAddress + ':' + options.socketPort, {
         'query': 'token=' + token
     });
 
@@ -59,7 +59,7 @@ module.exports = function(options, callback) {
     });
 
     socket.on('error', (err) => {
-        console.error('Connection error.');
+        console.error('Connection error:', err);
         if (socket) {
             socket.destroy();
             socket = null;
