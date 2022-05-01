@@ -108,6 +108,11 @@ const store = {
 
 const createServer = function(options) {
     serverMain(options, function(err, socket, config) {
+        if (err) {
+            console.error(err)
+            return
+        }
+
         // Grbl
         socket.on("Grbl:state", function(state) {
             // console.log('state', state);
