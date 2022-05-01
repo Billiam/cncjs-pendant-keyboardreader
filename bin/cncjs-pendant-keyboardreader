@@ -110,11 +110,11 @@ const createServer = function(options) {
     serverMain(options, function(err, socket, config) {
         // Grbl
         socket.on("Grbl:state", function(state) {
-            console.log('state', state);
+            // console.log('state', state);
             store.controller.state = state;
         });
         socket.on("Grbl:settings", function(settings) {
-            console.log('settings', settings);
+            // console.log('settings', settings);
             store.controller.settings = settings;
         });
 
@@ -238,7 +238,7 @@ const createServer = function(options) {
                     let jogSpeed = SMOOTHJOG_JOGSPEED * speedModifier;
                     let jogStep = SMOOTHJOG_JOGSTEP * speedModifier;
 
-                    StartSmoothJog(axis, moveDirection, jogStep, jogSpeed);
+                    startSmoothJog(axis, moveDirection, jogStep, jogSpeed);
                 } else {
                     let jogSpeed;
                     if (event.l_control || event.r_control) {
@@ -301,7 +301,7 @@ const createServer = function(options) {
             smoothJoggingTimer = setTimeout(smoothJog, SMOOTHJOG_COMMANDS_INTERVAL * jogDelayModifier, axis, direction, jogDistance, jogSpeed);
         };
 
-        const StartSmoothJog = function(axis, direction, jogStep, jogSpeed) {
+        const startSmoothJog = function(axis, direction, jogStep, jogSpeed) {
             if ( ! smoothJogging) {
                 smoothJogging = true;
                 smoothJog(axis, direction, jogStep, jogSpeed);
