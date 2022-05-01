@@ -82,6 +82,11 @@ module.exports = function(options, callback) {
         callback(new Error('Error opening serial port "' + options.port + '"'));
     });
 
+    socket.on('serialport:close', function() {
+        callback(new Error('Serial connection closed'))
+        process.exit(1)
+    });
+
     socket.on('serialport:read', function(data) {
         //console.log((data || '').trim());
     });
