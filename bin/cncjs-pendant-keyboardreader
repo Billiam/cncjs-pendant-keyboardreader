@@ -194,6 +194,7 @@ const createServer = function(options) {
 
             if ( smoothJogging && !(event.l_shift || event.r_shift)) {
                 stopSmoothJog();
+                return;
             }
 
             switch (event.key) {
