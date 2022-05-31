@@ -288,7 +288,7 @@ const createServer = function(options) {
         };
 
 
-        const smoothJog = function(axis, direction, jogDistance, jogSpeed) {
+        const smoothJog = function(axis, direction, jogDistance, jogSpeed, firstDelay = false) {
             if (!smoothJogging) {
                 return
             }
@@ -304,13 +304,13 @@ const createServer = function(options) {
 
             // plan to resend a smooth jog command after a small delay to keep things going,
             // unless user asked to stop the smooth jog movement
-            smoothJoggingTimer = setTimeout(smoothJog, SMOOTHJOG_COMMANDS_INTERVAL * jogDelayModifier, axis, direction, jogDistance, jogSpeed);
+            smoothJoggingTimer = setTimeout(smoothJog, SMOOTHJOG_COMMANDS_INTERVAL * jogDelayModifier - (firstDelay ? 50 : 0), axis, direction, jogDistance, jogSpeed);
         };
 
         const startSmoothJog = function(axis, direction, jogStep, jogSpeed) {
             if ( ! smoothJogging) {
                 smoothJogging = true;
-                smoothJog(axis, direction, jogStep, jogSpeed);
+                smoothJog(axis, direction, jogStep, jogSpeed, true);
                 console.log("SMOOTH JOG " +axis + direction + jogStep + " F"+ jogSpeed);
             }
         }
