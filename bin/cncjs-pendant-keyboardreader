@@ -30,9 +30,9 @@ const SINGLESTEP_LARGE_JOGDISTANCE = 10 // large jog step in mm
 const SINGLESTEP_MEDIUM_JOGDISTANCE = 1 // medium jog step in mm
 const SINGLESTEP_SMALL_JOGDISTANCE = 0.1 // small jog step in mm
 
-const SMOOTHJOG_COMMANDS_INTERVAL = 200 // period in ms at which the $J jogging commands are sent to the machine
+const SMOOTHJOG_COMMANDS_INTERVAL = 150 // period in ms at which the $J jogging commands are sent to the machine
 const SMOOTHJOG_JOGSPEED = 5000 // mm per min
-const SMOOTHJOG_JOGSTEP = SMOOTHJOG_JOGSPEED * (1/60) * (SMOOTHJOG_COMMANDS_INTERVAL / 1000)
+const SMOOTHJOG_JOGSTEP = SMOOTHJOG_JOGSPEED * (SMOOTHJOG_COMMANDS_INTERVAL / 60000)
 
 program
     .version(pkg.version)
