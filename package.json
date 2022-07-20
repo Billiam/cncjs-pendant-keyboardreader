@@ -1,6 +1,6 @@
 {
   "name": "cncjs-pendant-keyboardreader",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "CNCjs keyboard pendant for remote jogging",
   "main": "./index.js",
   "engines": {

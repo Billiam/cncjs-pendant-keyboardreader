@@ -145,7 +145,7 @@ const createServer = function(options) {
         });
 
         socket.on('serialport:read', function(data) {
-            if ( ! joggingAck && data.startsWith('ok')) {
+            if ( ! joggingAck && (data.startsWith('ok') || data.startsWith('error:15'))) {
                 joggingAck = true;
             }
         });
